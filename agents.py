@@ -10,6 +10,8 @@ class InfoSearchTool(BaseTool):
 
     def _run(self, query: str) -> str:
         try:
+            from hybridsearch import hybrid_research
+
             result = hybrid_research(query, 10)  # Search function
             return result
         except Exception as e:
@@ -22,7 +24,7 @@ class CrewAgent:
         self.selected_llm = ChatOpenAI(
             openai_api_base="https://api.groq.com/openai/v1",
             openai_api_key=os.environ["GROQ_API_KEY"],
-            model_name="llama-3.1-70b-versatile",
+            model_name="llama-3.2-90b-text-preview",
             temperature=0,
             max_tokens=400,
         )
