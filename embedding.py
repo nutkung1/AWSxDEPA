@@ -1,6 +1,6 @@
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import MongoDBAtlasVectorSearch
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import BedrockEmbeddings
 from langchain_community.document_loaders import UnstructuredExcelLoader
 from langchain_community.document_loaders.csv_loader import CSVLoader
 from pymongo import MongoClient
@@ -18,9 +18,6 @@ class MongoDBEmbedding:
         self.client = MongoClient(self.mongo_uri)
         self.db = self.client[self.db_name]
         self.collection = self.db[self.collection_name]
-        self.model_name = "sentence-transformers/all-MiniLM-L6-v2"
-        self.model_kwargs = {"device": "cpu"}
-        self.encode_kwargs = {"normalize_embeddings": True}
         self.path = path
 
     def load_data_to_mongodb(self) -> None:
@@ -34,18 +31,19 @@ class MongoDBEmbedding:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=350, chunk_overlap=20)
         docs = text_splitter.split_documents(documents)
 
-        # Initialize HuggingFace Embeddings
-        hf = HuggingFaceEmbeddings(
-            model_name=self.model_name,
-            model_kwargs=self.model_kwargs,
-            encode_kwargs=self.encode_kwargs,
-            multi_process=False,  # Disable multiprocessing for simplicity
+        # # Initialize HuggingFace Embeddings
+        embeddings = BedrockEmbeddings(
+            model_id="amazon.titan-embed-text-v2:0",
+            model_kwargs={
+                "dimensions": 512,
+                "normalize": True,
+            },
         )
 
-        # Perform vector search insertion into MongoDB
+        # # Perform vector search insertion into MongoDB
         MongoDBAtlasVectorSearch.from_documents(
             documents=docs,
-            embedding=hf,
+            embedding=embeddings,
             collection=self.collection,
             index_name="embedding",
         )

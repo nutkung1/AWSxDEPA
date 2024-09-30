@@ -1,7 +1,6 @@
 from crewai import Agent
-from langchain_openai import ChatOpenAI
 from crewai_tools import BaseTool
-import os
+from langchain_aws import ChatBedrock
 
 
 class InfoSearchTool(BaseTool):
@@ -21,12 +20,9 @@ class InfoSearchTool(BaseTool):
 
 class CrewAgent:
     def __init__(self) -> None:
-        self.selected_llm = ChatOpenAI(
-            openai_api_base="https://api.groq.com/openai/v1",
-            openai_api_key=os.environ["GROQ_API_KEY"],
-            model_name="llama-3.2-90b-text-preview",
-            temperature=0,
-            max_tokens=400,
+        self.selected_llm = ChatBedrock(
+            model_id="amazon.titan-text-premier-v1:0",
+            model_kwargs={"temperature": 0, "max_tokens": 300},
         )
         self.tools = [InfoSearchTool()]
 

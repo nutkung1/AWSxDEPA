@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from pymongo import MongoClient
 from langchain_cohere import CohereEmbeddings
 from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import BedrockEmbeddings
 import re
 
 # Load environment variables from .env file
@@ -83,26 +84,15 @@ def mongo_connect(uri):
 
 # Function to generate embeddings for a query
 def generate_embedding(text):
-    api_key = os.environ.get("COHERE_API_KEY")
-
-    if not api_key:
-        raise ValueError(
-            "Cohere API Key is missing. Please set COHERE_API_KEY in your environment variables."
-        )
-    model_name = "sentence-transformers/all-MiniLM-L6-v2"
-    model_kwargs = {"device": "cpu"}
-    encode_kwargs = {"normalize_embeddings": True}
-    model = HuggingFaceEmbeddings(
-        model_name=model_name,
-        model_kwargs=model_kwargs,
-        encode_kwargs=encode_kwargs,
-        multi_process=False,  # Disable multiprocessing for simplicity
+    embeddings = BedrockEmbeddings(
+        model_id="amazon.titan-embed-text-v2:0",
+        model_kwargs={
+            "dimensions": 512,  # Set your desired dimensions here
+            "normalize": True,
+        },
     )
-    # model = CohereEmbeddings(
-    #     model="embed-english-light-v3.0",
-    #     cohere_api_key=api_key,
-    # )
-    embedding = model.embed_query(text)
+
+    embedding = embeddings.embed_query(text)
     return embedding
 
 
@@ -119,7 +109,7 @@ def atlas_hybrid_search(
                 "$vectorSearch": {
                     "queryVector": query_vector,
                     "path": "embedding",
-                    "numCandidates": 20,
+                    "numCandidates": 25,
                     "limit": top_k,
                     "index": vector_index_name,
                 },
@@ -214,4 +204,4 @@ def hybrid_research(query, top_k):
     return result
 
 
-print(hybrid_research("What is whopper cal", 1))
+# print(hybrid_research("What is whopper cal", 1))
