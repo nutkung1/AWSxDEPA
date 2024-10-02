@@ -37,7 +37,7 @@ class ResearchCrewTasks:
             ),
             agent=agent,
             context=context,
-            async_execution=True,
+            # async_execution=True,
         )
 
     def hallucination_task(self, agent, context, inputs):
