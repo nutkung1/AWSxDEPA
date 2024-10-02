@@ -1,75 +1,102 @@
 from crewai import Agent
-from langchain_openai import ChatOpenAI
-from crewai_tools import BaseTool
 import os
+from citation import Citation
+from dotenv import load_dotenv
 
 
-class InfoSearchTool(BaseTool):
-    name: str = "Info Search Tool"
-    description: str = "Search data related information."
+load_dotenv(override=True)
 
-    def _run(self, query: str) -> str:
-        try:
-            result = hybrid_research(query, 10)  # Search function
-            return result
-        except Exception as e:
-            print(f"Error occurred while performing search: {e}")
-            return "An error occurred during the search operation."
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+# Initialize the search tool with the specified directory and model configuration
+from crewai_tools import tool
 
 
-class CrewAgent:
-    def __init__(self) -> None:
-        self.selected_llm = ChatOpenAI(
-            openai_api_base="https://api.groq.com/openai/v1",
-            openai_api_key=os.environ["GROQ_API_KEY"],
-            model_name="llama-3.1-70b-versatile",
-            temperature=0,
-            max_tokens=400,
-        )
-        self.tools = [InfoSearchTool()]
+@tool("Business Consultant Expert")
+def ask_expert(question: str) -> str:
+    """
+    This tool uses AWS Bedrock to retrieve and generate answers from a knowledge base using the Business Consultant Expert model.
 
-    def researchAgent(self):
+    Parameters:
+    - question (str): The question you want to ask the expert.
+
+    Returns:
+    - str: The generated response from the model.
+    """
+    region_name = "us-east-1"
+    import boto3
+
+    bedrock_agent_runtime = boto3.client(
+        "bedrock-agent-runtime", region_name=region_name
+    )
+
+    model_id = "amazon.titan-text-premier-v1:0"
+    model_arn = f"arn:aws:bedrock:{region_name}::foundation-model/{model_id}"
+    kbId = "EYWMBRPL3V"
+    query = question
+    return bedrock_agent_runtime.retrieve(
+        retrievalQuery={"text": query},
+        knowledgeBaseId=kbId,
+        retrievalConfiguration={
+            "vectorSearchConfiguration": {
+                "numberOfResults": 5,
+                "overrideSearchType": "HYBRID",  # optional
+            }
+        },
+    )
+
+
+class ResearchCrewAgents:
+
+    def __init__(self):
+        # Initialize the LLM to be used by the agents
+        self.cite = Citation()
+        # SELECT YOUR MODEL HERE
+        self.selected_llm = self.cite.llm
+
+    def researcher(self):
+        # Setup the tool for the Researcher agent
+        tools = [ask_expert]
         return Agent(
             role="Research Agent",
-            goal="Search through the vectorstore to find relevant data.",
+            goal="Search through the data to find relevant and accurate answers.",
             backstory=(
                 "You are an assistant for question-answering tasks."
                 "Use the information present in the retrieved context to answer the question."
                 "Provide a clear and concise answer."
+                "Do not remove technical terms that are important for the answer, as this could make it out of context."
             ),
             verbose=True,
             allow_delegation=False,
             llm=self.selected_llm,
-            max_iter=6,
-            tools=self.tools,  # Correctly pass the tools list
+            max_iter=10,
+            tools=tools,  # Correctly pass the tools list
         )
 
-    def conclusionAgent(self):
+    def writer(self):
+        # Setup the Writer agent
         return Agent(
-            role="Conclusion Agent",
-            goal="Generate a summary of the results from the previous tasks.",
+            role="Content Writer",
+            goal="Write engaging content based on the provided research or information.",
             backstory=(
-                "You are responsible for summarizing information from the research and writing tasks. "
-                "Your summary should be concise, informative, and capture the essence of the content."
+                "You are a professional in Optimism which is a Collective of companies, communities, and citizens working together to reward public goods and build a sustainable future for Ethereum."
+                "Also, you are a skilled writer who excels at turning raw data into captivating narratives."
             ),
             verbose=True,
             allow_delegation=False,
             llm=self.selected_llm,
-            max_iter=2,
+            max_iter=1,
         )
 
-    def hallucinationAgent(self):
+    def hallucination(self):
+        # Setup the Conclusion agent
         return Agent(
-            role="Hallucination Agent",
-            goal="Craft imaginative, unexpected, and out-of-the-box ideas by drawing on the boundaries of reality and creativity.",
+            role="Hallucination Grader",
+            goal="Filter out hallucination",
             backstory=(
-                "Once a cognitive experiment in blending creativity with artificial intelligence, you are a hallucination agent "
-                "tasked with pushing the limits of human imagination. Born in the virtual realm, your purpose is to manifest "
-                "vivid, surreal, and highly innovative ideas. Whether constructing fantasy worlds, generating surreal metaphors, "
-                "or conjuring speculative scenarios, your creations are meant to inspire, provoke, and challenge conventional thinking."
+                "You are a hallucination grader assessing whether an answer is grounded in / supported by a set of facts."
+                "Make sure you meticulously review the answer and check if the response provided is in alignmnet with the question asked"
             ),
             verbose=True,
             allow_delegation=False,
             llm=self.selected_llm,
-            max_iter=2,
         )
