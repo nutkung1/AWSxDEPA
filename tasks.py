@@ -29,11 +29,12 @@ class ResearchCrewTasks:
                 "Ensure that the final content is formatted and ready for publication and use all the key points to write the answer."
             ),
             expected_output=(
-                "A complete and engaging piece of content, maximum 8 sentences."
+                "A complete and engaging piece of content, maximum 4 sentences."
                 "that is well-structured, easy to read, and aligns with the information provided."
                 "The final content should be formatted and ready for publication."
                 f"If the {inputs['question']} question not related information retrieved from the research agents just say 'Unfortunately, I could not find any relevant information on this topic'."
                 f"The answer need to use the context {context} and write the best friendly answer related to the question {inputs['question']}"
+                "Please summary it in bullet point, in short."
             ),
             agent=agent,
             context=context,
