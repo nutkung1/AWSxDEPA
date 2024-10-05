@@ -1,4 +1,3 @@
-from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 import os
 from crewai import Crew, Process
@@ -28,8 +27,7 @@ class ResearchCrew:
     def serialize_crew_output(self, crew_output):
         return {"output": crew_output}
 
-    def run(self, is_discord=False):
-        # from hybridsearch import hybrid_research
+    def run(self):
 
         researcher = self.agents.researcher()
         writer = self.agents.writer()
@@ -48,7 +46,6 @@ class ResearchCrew:
             verbose=True,
         )
         self.result = crew.kickoff(inputs=self.inputs)
-        # self.citation = hybrid_research(self.inputs, 5)[1]
 
         self.serialized_result = self.serialize_crew_output(self.result)
         return {"result": self.serialized_result}
@@ -172,7 +169,12 @@ def handleMessage(event, destination):
         chat_conver[destination].append(new_message)
         inputs = textFromUser
         result = ask_question(inputs)
-        result = result["result"]["output"].raw.replace("yes.", "").strip()
+        result = (
+            result["result"]["output"]
+            .raw.replace("yes.", "")
+            .replace("yes", "")
+            .strip()
+        )
         print("result returning from latest message text", result)
         if lang == "th":
             return GoogleTranslator(source="auto", target="th").translate(result[""])
@@ -208,13 +210,9 @@ def handleMessage(event, destination):
 
 
 def ask_question(question):
-    try:
-        research_crew = ResearchCrew({"question": question})
-        result = research_crew.run()
-        return result
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+    research_crew = ResearchCrew({"question": question})
+    result = research_crew.run()
+    return result
 
 
 # ------------ end edit zone  --------

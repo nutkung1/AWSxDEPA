@@ -1,12 +1,9 @@
 from crewai import Agent
 import os
-from citation import Citation
 from dotenv import load_dotenv
-
+from langchain_community.embeddings import BedrockEmbeddings
 
 load_dotenv(override=True)
-
-os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 # Initialize the search tool with the specified directory and model configuration
 from crewai_tools import tool
 
@@ -45,17 +42,32 @@ def ask_expert(question: str) -> str:
     )
 
 
+from langchain_openai import ChatOpenAI
+
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+
+
 class ResearchCrewAgents:
 
     def __init__(self):
-        # Initialize the LLM to be used by the agents
-        self.cite = Citation()
         # SELECT YOUR MODEL HERE
-        self.selected_llm = self.cite.llm
+        self.selected_llm = ChatOpenAI(
+            openai_api_base="https://api.groq.com/openai/v1",
+            openai_api_key=os.environ["GROQ_API_KEY"],
+            model_name="llama-3.2-90b-text-preview",
+            temperature=0,
+            max_tokens=280,
+        )
+        self.embeddings = BedrockEmbeddings(
+            model_id="amazon.titan-embed-text-v2:0",
+            model_kwargs={
+                "dimensions": 1024,
+                "normalize": True,
+            },
+        )
 
     def researcher(self):
         # Setup the tool for the Researcher agent
-        tools = [ask_expert]
         return Agent(
             role="Research Agent",
             goal="Search through the data to find relevant and accurate answers.",
@@ -69,7 +81,7 @@ class ResearchCrewAgents:
             allow_delegation=False,
             llm=self.selected_llm,
             max_iter=10,
-            tools=tools,  # Correctly pass the tools list
+            tools=[ask_expert],  # Correctly pass the tools list
         )
 
     def writer(self):
