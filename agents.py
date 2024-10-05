@@ -58,6 +58,8 @@ class ResearchCrewAgents:
             temperature=0,
             max_tokens=280,
         )
+
+        """Embedded"""
         self.embeddings = BedrockEmbeddings(
             model_id="amazon.titan-embed-text-v2:0",
             model_kwargs={
@@ -96,7 +98,7 @@ class ResearchCrewAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.selected_llm,
-            max_iter=1,
+            max_iter=2,
         )
 
     def hallucination(self):

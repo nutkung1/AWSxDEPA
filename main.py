@@ -44,6 +44,14 @@ class ResearchCrew:
             tasks=[research_task, writing_task, hallucination_task],
             process=Process.sequential,
             verbose=True,
+            memory=True,
+            embedder={
+                "provider": "aws_bedrock",
+                "config": {
+                    "model": "amazon.titan-embed-text-v2:0",
+                    "vector_dimension": 1024,
+                },
+            },
         )
         self.result = crew.kickoff(inputs=self.inputs)
 
@@ -95,8 +103,6 @@ def webhook():
     print(req)
     if len(req["events"]) == 0:
         return "", 200
-
-    # replyToken = req['events'][0]['replyToken']
 
     handleRequest(req)
     return "", 200
@@ -210,11 +216,16 @@ def handleMessage(event, destination):
 
 
 def ask_question(question):
-    research_crew = ResearchCrew({"question": question})
-    result = research_crew.run()
-    return result
+    try:
+        research_crew = ResearchCrew({"question": question})
+        result = research_crew.run()
+        return result
+    except Exception as e:
+        print(f"Error during question handling: {e}")
+        return {"result": {"output": "An error occurred during processing."}}
 
 
 # ------------ end edit zone  --------
+""" gunicorn -w 8 -b 127.0.0.1:10000 main:app """
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True, port=int(os.environ.get("PORT", "10000")))
