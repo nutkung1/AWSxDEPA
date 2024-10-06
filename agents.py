@@ -2,10 +2,16 @@ from crewai import Agent
 import os
 from dotenv import load_dotenv
 from langchain_community.embeddings import BedrockEmbeddings
+import json
 
 load_dotenv(override=True)
 # Initialize the search tool with the specified directory and model configuration
 from crewai_tools import tool
+
+import boto3
+
+region_name = "us-east-1"
+bedrock_agent_runtime = boto3.client("bedrock-agent-runtime", region_name=region_name)
 
 
 @tool("Business Consultant Expert")
@@ -19,12 +25,6 @@ def ask_expert(question: str) -> str:
     Returns:
     - str: The generated response from the model.
     """
-    region_name = "us-east-1"
-    import boto3
-
-    bedrock_agent_runtime = boto3.client(
-        "bedrock-agent-runtime", region_name=region_name
-    )
 
     model_id = "amazon.titan-text-premier-v1:0"
     model_arn = f"arn:aws:bedrock:{region_name}::foundation-model/{model_id}"
@@ -35,12 +35,93 @@ def ask_expert(question: str) -> str:
         knowledgeBaseId=kbId,
         retrievalConfiguration={
             "vectorSearchConfiguration": {
-                "numberOfResults": 5,
+                "numberOfResults": 3,
                 "overrideSearchType": "HYBRID",  # optional
             }
         },
     )
 
+
+from langchain_aws import ChatBedrock
+
+
+def upload_to_s3(image_data: bytes, filename: str) -> str:
+    """Uploads the image directly to S3 from memory and returns the S3 URL."""
+    s3 = boto3.client("s3")
+    bucket_name = "depaimagegen"  # Replace with your S3 bucket name
+
+    # Upload image bytes directly to S3
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=filename,
+        Body=image_data,
+        ContentType="image/png",  # Change to appropriate MIME type
+        ACL="public-read",  # Make the object publicly accessible
+    )
+
+    # Construct the public S3 URL for the uploaded image
+    s3_url = f"https://{bucket_name}.s3.amazonaws.com/{filename}"
+
+    return s3_url
+
+
+def generate_image(text: str) -> str:
+    """Generates an image using Amazon Titan and uploads it to S3."""
+    llm = ChatBedrock(
+        model_id="amazon.titan-text-lite-v1",
+        model_kwargs=dict(temperature=0),
+    )
+    import base64
+
+    messages = [
+        (
+            "system",
+            "Conclude user input text in 60 words for image generator prompt.",
+        ),
+        ("human", text),
+    ]
+    ai_msg = llm.invoke(messages)
+    concludeText = ai_msg.content
+    print(concludeText)
+
+    body = json.dumps(
+        {
+            "taskType": "TEXT_IMAGE",
+            "textToImageParams": {
+                "text": concludeText,
+            },
+            "imageGenerationConfig": {
+                "numberOfImages": 1,
+                "quality": "premium",
+                "height": 1024,
+                "width": 1024,
+                "cfgScale": 7.5,
+                "seed": 42,
+            },
+        }
+    )
+
+    bedrock = boto3.client(service_name="bedrock-runtime")
+    response = bedrock.invoke_model(
+        body=body,
+        modelId="amazon.titan-image-generator-v2:0",
+        accept="application/json",
+        contentType="application/json",
+    )
+
+    response_body = json.loads(response.get("body").read())
+    base64_image = response_body.get("images")[0]  # Assuming 1 image
+
+    # Convert base64 image to bytes for S3 upload
+    image_bytes = base64.b64decode(base64_image)
+
+    # Upload the image to S3 and get the URL
+    image_url = upload_to_s3(image_bytes, "generated_image.png")
+
+    return image_url
+
+
+# print(generate_image("What is Double Hamburger"))
 
 from langchain_openai import ChatOpenAI
 
@@ -54,9 +135,9 @@ class ResearchCrewAgents:
         self.selected_llm = ChatOpenAI(
             openai_api_base="https://api.groq.com/openai/v1",
             openai_api_key=os.environ["GROQ_API_KEY"],
-            model_name="llama-3.2-90b-text-preview",
+            model_name="llama-3.2-11b-text-preview",
             temperature=0,
-            max_tokens=280,
+            max_tokens=300,
         )
 
         """Embedded"""
@@ -82,7 +163,7 @@ class ResearchCrewAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.selected_llm,
-            max_iter=10,
+            # max_iter=7,
             tools=[ask_expert],  # Correctly pass the tools list
         )
 
@@ -98,7 +179,7 @@ class ResearchCrewAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.selected_llm,
-            max_iter=2,
+            max_iter=1,
         )
 
     def hallucination(self):

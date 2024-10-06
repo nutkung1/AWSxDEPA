@@ -108,6 +108,9 @@ def webhook():
     return "", 200
 
 
+from agents import generate_image
+
+
 def handleRequest(req):
     token = os.environ.get("LINE_TOKEN")  # edit token here
     reply_url = "https://api.line.me/v2/bot/message/reply"
@@ -118,23 +121,48 @@ def handleRequest(req):
         "Authorization": Authorization,
     }
 
-    # now handle only 1 message that is sending from a user for now
     response = handleEvents(req["events"][0], req["destination"])
     replyToken = req["events"][0]["replyToken"]
 
-    data = json.dumps(
-        {
-            "replyToken": replyToken,
-            "messages": [
-                {
-                    "type": "text",
-                    "text": response,
-                }
-            ],
-        }
-    )
-    r = requests.post(reply_url, headers=headers, data=data)
-    print(r.text)
+    if "cannot find relevant information" in response:
+        data = json.dumps(
+            {
+                "replyToken": replyToken,
+                "messages": [
+                    {
+                        "type": "text",
+                        "text": response,
+                    }
+                ],
+            }
+        )
+        r = requests.post(reply_url, headers=headers, data=data)
+        print(f"Response for no information: {r.text}")  # Log response
+    else:
+        user_message = req["events"][0]["message"]["text"]
+        image_url = generate_image(user_message)
+
+        print(f"Generated image URL: {image_url}")  # Debug: check generated URL
+
+        data = json.dumps(
+            {
+                "replyToken": replyToken,
+                "messages": [
+                    {
+                        "type": "text",
+                        "text": response,
+                    },
+                    {
+                        "type": "image",
+                        "originalContentUrl": image_url,
+                        "previewImageUrl": image_url,
+                    },
+                ],
+            }
+        )
+
+        r = requests.post(reply_url, headers=headers, data=data)
+        print(f"LINE API Response: {r.text}")  # Debug: check LINE API response
 
 
 chat_conver = {}
@@ -187,32 +215,20 @@ def handleMessage(event, destination):
         else:
             return result
     else:
-        latest_message_type = chat_conver[destination][-1]["type"]
-
-        if latest_message_type == "car":
-            car_info = chat_conver[destination][-1]["msg"]
-            chat_conver[destination].append(new_message)
-            print("======== CAR INFO =========")
-            print(car_info)
-            initialPrompt = textFromUser + car_info
-            inputs = textFromUser
-            result = ask_question(inputs)
-            result = result["result"]["output"].raw.replace("yes.", "").strip()
-            print("result returning from latest message car", result)
-            if lang == "th":
-                return GoogleTranslator(source="auto", target="th").translate(result)
-            else:
-                return result
+        chat_conver[destination].append(new_message)
+        inputs = textFromUser
+        result = ask_question(inputs)
+        result = (
+            result["result"]["output"]
+            .raw.replace("yes.", "")
+            .replace("yes", "")
+            .strip()
+        )
+        print("result returning from latest message text", result)
+        if lang == "th":
+            return GoogleTranslator(source="auto", target="th").translate(result)
         else:
-            chat_conver[destination].append(new_message)
-            inputs = textFromUser
-            result = ask_question(inputs)
-            result = result["result"]["output"].raw.replace("yes.", "").strip()
-            print("result returning from latest message text", result)
-            if lang == "th":
-                return GoogleTranslator(source="auto", target="th").translate(result)
-            else:
-                return result
+            return result
 
 
 def ask_question(question):
@@ -226,6 +242,6 @@ def ask_question(question):
 
 
 # ------------ end edit zone  --------
-""" gunicorn -w 8 -b 127.0.0.1:10000 main:app """
+""" gunicorn -w 4 -b 127.0.0.1:10000 main:app """
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True, port=int(os.environ.get("PORT", "10000")))
