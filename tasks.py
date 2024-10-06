@@ -34,7 +34,6 @@ class ResearchCrewTasks:
                 "The final content should be formatted and ready for publication."
                 f"If the {inputs['question']} question not related information retrieved from the research agents just say 'Unfortunately, I could not find any relevant information on this topic'."
                 f"The answer need to use the context {context} and write the best friendly answer related to the question {inputs['question']}"
-                "Please summary it in bullet point, in short."
             ),
             agent=agent,
             context=context,
@@ -44,7 +43,7 @@ class ResearchCrewTasks:
     def hallucination_task(self, agent, context, inputs):
         return Task(
             description=(
-                "Based on the response from the grader task for the quetion {question} evaluate whether the answer is grounded in / supported by a set of facts."
+                f"Based on the response from the grader task for the quetion {inputs['question']} evaluate whether the answer is grounded in / supported by a set of facts."
             ),
             expected_output=(
                 "Binary score 'yes' or 'no' score to indicate whether the answer is sync with the question asked"

@@ -14,34 +14,6 @@ region_name = "us-east-1"
 bedrock_agent_runtime = boto3.client("bedrock-agent-runtime", region_name=region_name)
 
 
-@tool("Business Consultant Expert")
-def ask_expert(question: str) -> str:
-    """
-    This tool uses AWS Bedrock to retrieve and generate answers from a knowledge base using the Business Consultant Expert model.
-
-    Parameters:
-    - question (str): The question you want to ask the expert.
-
-    Returns:
-    - str: The generated response from the model.
-    """
-
-    model_id = "amazon.titan-text-premier-v1:0"
-    model_arn = f"arn:aws:bedrock:{region_name}::foundation-model/{model_id}"
-    kbId = "EYWMBRPL3V"
-    query = question
-    return bedrock_agent_runtime.retrieve(
-        retrievalQuery={"text": query},
-        knowledgeBaseId=kbId,
-        retrievalConfiguration={
-            "vectorSearchConfiguration": {
-                "numberOfResults": 3,
-                "overrideSearchType": "HYBRID",  # optional
-            }
-        },
-    )
-
-
 from langchain_aws import ChatBedrock
 
 
@@ -65,24 +37,47 @@ def upload_to_s3(image_data: bytes, filename: str) -> str:
     return s3_url
 
 
-def generate_image(text: str) -> str:
-    """Generates an image using Amazon Titan and uploads it to S3."""
+def clean_prompt(text: str) -> str:
+    """Cleans input text to avoid content filter violations."""
     llm = ChatBedrock(
         model_id="amazon.titan-text-lite-v1",
         model_kwargs=dict(temperature=0),
     )
+
+    # Use a message to the LLM to filter for content violations
+    messages = [
+        (
+            "system",
+            "Please rewrite the input in a way that aligns with AWS Responsible AI Policy and removes any potentially harmful content.",
+        ),
+        ("human", text),
+    ]
+
+    response = llm.invoke(messages)
+    cleaned_text = response.content
+    return cleaned_text
+
+
+def generate_image(text: str) -> str:
+    """Generates a business overview image using Amazon Titan and uploads it to S3."""
+    llm = ChatBedrock(
+        model_id="amazon.titan-text-lite-v1",
+        model_kwargs=dict(temperature=0),  # Set higher temperature for creativity
+    )
     import base64
+
+    text = clean_prompt(text)
 
     messages = [
         (
             "system",
-            "Conclude user input text in 60 words for image generator prompt.",
+            "Summarize the business overview response with key elements like industry, goals, products, customers, and challenges for image generation in 50 words.",
         ),
         ("human", text),
     ]
     ai_msg = llm.invoke(messages)
     concludeText = ai_msg.content
-    print(concludeText)
+    print("Image Generation Prompt:", concludeText)
 
     body = json.dumps(
         {
@@ -93,9 +88,9 @@ def generate_image(text: str) -> str:
             "imageGenerationConfig": {
                 "numberOfImages": 1,
                 "quality": "premium",
-                "height": 1024,
-                "width": 1024,
-                "cfgScale": 7.5,
+                "height": 512,
+                "width": 512,
+                "cfgScale": 5,
                 "seed": 42,
             },
         }
@@ -110,13 +105,13 @@ def generate_image(text: str) -> str:
     )
 
     response_body = json.loads(response.get("body").read())
-    base64_image = response_body.get("images")[0]  # Assuming 1 image
+    base64_image = response_body.get("images")[0]
 
     # Convert base64 image to bytes for S3 upload
     image_bytes = base64.b64decode(base64_image)
 
     # Upload the image to S3 and get the URL
-    image_url = upload_to_s3(image_bytes, "generated_image.png")
+    image_url = upload_to_s3(image_bytes, "generated_business_image.png")
 
     return image_url
 
@@ -128,6 +123,34 @@ from langchain_openai import ChatOpenAI
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
 
+@tool("Business Consultant tools")
+def ask_expert(question: str) -> str:
+    """
+    This tool uses AWS Bedrock to retrieve and generate answers from a knowledge base.
+
+    Parameters:
+    - question (str): The question you want to ask the expert.
+
+    Returns:
+    - str: The generated response from the model.
+    """
+
+    model_id = "amazon.titan-text-premier-v1:0"
+    model_arn = f"arn:aws:bedrock:{region_name}::foundation-model/{model_id}"
+    kbId = "ULFPGHXRLJ"
+    query = question
+    return bedrock_agent_runtime.retrieve(
+        retrievalQuery={"text": query},
+        knowledgeBaseId=kbId,
+        retrievalConfiguration={
+            "vectorSearchConfiguration": {
+                "numberOfResults": 3,
+                "overrideSearchType": "HYBRID",  # optional
+            }
+        },
+    )
+
+
 class ResearchCrewAgents:
 
     def __init__(self):
@@ -135,7 +158,7 @@ class ResearchCrewAgents:
         self.selected_llm = ChatOpenAI(
             openai_api_base="https://api.groq.com/openai/v1",
             openai_api_key=os.environ["GROQ_API_KEY"],
-            model_name="llama-3.2-11b-text-preview",
+            model_name="llama-3.2-90b-text-preview",
             temperature=0,
             max_tokens=300,
         )
@@ -145,7 +168,6 @@ class ResearchCrewAgents:
             model_id="amazon.titan-embed-text-v2:0",
             model_kwargs={
                 "dimensions": 1024,
-                "normalize": True,
             },
         )
 
@@ -163,7 +185,6 @@ class ResearchCrewAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.selected_llm,
-            # max_iter=7,
             tools=[ask_expert],  # Correctly pass the tools list
         )
 
@@ -173,13 +194,12 @@ class ResearchCrewAgents:
             role="Content Writer",
             goal="Write engaging content based on the provided research or information.",
             backstory=(
-                "You are a professional in Optimism which is a Collective of companies, communities, and citizens working together to reward public goods and build a sustainable future for Ethereum."
+                "You are a professional in Business overview writer. You need to write the content in a way that is engaging and informative for Business customer."
                 "Also, you are a skilled writer who excels at turning raw data into captivating narratives."
             ),
             verbose=True,
             allow_delegation=False,
             llm=self.selected_llm,
-            max_iter=1,
         )
 
     def hallucination(self):

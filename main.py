@@ -139,8 +139,8 @@ def handleRequest(req):
         r = requests.post(reply_url, headers=headers, data=data)
         print(f"Response for no information: {r.text}")  # Log response
     else:
-        user_message = req["events"][0]["message"]["text"]
-        image_url = generate_image(user_message)
+        # user_message = req["events"][0]["message"]["text"]
+        image_url = generate_image(response)
 
         print(f"Generated image URL: {image_url}")  # Debug: check generated URL
 
@@ -207,6 +207,7 @@ def handleMessage(event, destination):
             result["result"]["output"]
             .raw.replace("yes.", "")
             .replace("yes", "")
+            .replace("Yes.", "")
             .strip()
         )
         print("result returning from latest message text", result)
@@ -222,6 +223,7 @@ def handleMessage(event, destination):
             result["result"]["output"]
             .raw.replace("yes.", "")
             .replace("yes", "")
+            .replace("Yes.", "")
             .strip()
         )
         print("result returning from latest message text", result)
