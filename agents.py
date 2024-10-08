@@ -128,7 +128,7 @@ def generate_image(text: str) -> str:
     messages = [
         (
             "system",
-            "Summarize the business overview response like industry, goals, products, and customers for image generation in 40 words.",
+            "Generate prompt for diagram of the solution for image generation in 40 words.",
         ),
         ("human", text),
     ]
@@ -148,8 +148,8 @@ def generate_image(text: str) -> str:
                 "quality": "premium",
                 "height": 512,
                 "width": 512,
-                "cfgScale": 5,
-                "seed": 42,
+                "cfgScale": 10,
+                # "seed": 42,
             },
         }
     )
