@@ -128,7 +128,7 @@ def generate_image(text: str) -> str:
     messages = [
         (
             "system",
-            "Summarize the business overview response with key elements like industry, goals, products, and customers for image generation in 40 words.",
+            "Summarize the business overview response like industry, goals, products, and customers for image generation in 40 words.",
         ),
         ("human", text),
     ]
@@ -148,7 +148,7 @@ def generate_image(text: str) -> str:
                 "quality": "premium",
                 "height": 512,
                 "width": 512,
-                "cfgScale": 10,
+                "cfgScale": 5,
                 "seed": 42,
             },
         }
