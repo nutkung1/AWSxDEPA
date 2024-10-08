@@ -15,6 +15,60 @@ bedrock_agent_runtime = boto3.client("bedrock-agent-runtime", region_name=region
 
 
 from langchain_aws import ChatBedrock
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+
+def generate_text(model_id, body):
+    """
+    Generate text using your provisioned custom model.
+    Args:
+        model_id (str): The model ID to use.
+        body (str) : The request body to use.
+    Returns:
+        response (json): The response from the model.
+    """
+
+    logger.info("Generating text with your provisioned custom model %s", model_id)
+
+    brt = boto3.client(service_name="bedrock-runtime")
+
+    accept = "application/json"
+    content_type = "application/json"
+
+    response = brt.invoke_model(
+        body=body, modelId=model_id, accept=accept, contentType=content_type
+    )
+    response_body = json.loads(response.get("body").read())
+
+    logger.info(
+        "Successfully generated text with provisioned custom model %s", model_id
+    )
+
+    return response_body
+
+
+def finetune(question):
+    """
+    Entrypoint for example.
+    """
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
+    model_id = "arn:aws:bedrock:us-east-1:597088053922:provisioned-model/8az1ox5ovoue"
+
+    body = json.dumps({"inputText": question})
+
+    response_body = generate_text(model_id, body)
+    # print(f"Input token count: {response_body['inputTextTokenCount']}")
+
+    # for result in response_body["results"]:
+    #     print(f"Token count: {result['tokenCount']}")
+    #     print(f"Output text: {result['outputText']}")
+    #     print(f"Completion reason: {result['completionReason']}")
+    return response_body["results"][0]["outputText"]
 
 
 def upload_to_s3(image_data: bytes, filename: str) -> str:
@@ -39,29 +93,32 @@ def upload_to_s3(image_data: bytes, filename: str) -> str:
 
 def clean_prompt(text: str) -> str:
     """Cleans input text to avoid content filter violations."""
-    llm = ChatBedrock(
-        model_id="amazon.titan-text-lite-v1",
-        model_kwargs=dict(temperature=0),
-    )
+    # llm = ChatBedrock(
+    #     # model_id="amazon.titan-text-lite-v1",
+    #     model_id="arn:aws:bedrock:us-east-1:597088053922:provisioned-model/8az1ox5ovoue",
+    #     model_kwargs=dict(temperature=0),
+    # )
 
     # Use a message to the LLM to filter for content violations
-    messages = [
-        (
-            "system",
-            "Please rewrite the input in a way that aligns with AWS Responsible AI Policy and removes any potentially harmful content.",
-        ),
-        ("human", text),
-    ]
+    # messages = [
+    #     (
+    #         "system",
+    #         "Please rewrite the input in a way that aligns with AWS Responsible AI Policy and removes any potentially harmful content.",
+    #     ),
+    #     ("human", text),
+    # ]
 
-    response = llm.invoke(messages)
-    cleaned_text = response.content
+    # response = llm.invoke(messages)
+    # cleaned_text = response.content
+    cleaned_text = finetune(text)
     return cleaned_text
 
 
 def generate_image(text: str) -> str:
     """Generates a business overview image using Amazon Titan and uploads it to S3."""
     llm = ChatBedrock(
-        model_id="amazon.titan-text-lite-v1",
+        # model_id="amazon.titan-text-lite-v1",
+        model_id="amazon.titan-text-express-v1",
         model_kwargs=dict(temperature=0),  # Set higher temperature for creativity
     )
     import base64
@@ -71,12 +128,13 @@ def generate_image(text: str) -> str:
     messages = [
         (
             "system",
-            "Summarize the business overview response with key elements like industry, goals, products, customers, and challenges for image generation in 50 words.",
+            "Summarize the business overview response with key elements like industry, goals, products, and customers for image generation in 40 words.",
         ),
         ("human", text),
     ]
     ai_msg = llm.invoke(messages)
     concludeText = ai_msg.content
+    # concludeText = finetune(text)
     print("Image Generation Prompt:", concludeText)
 
     body = json.dumps(
@@ -90,7 +148,7 @@ def generate_image(text: str) -> str:
                 "quality": "premium",
                 "height": 512,
                 "width": 512,
-                "cfgScale": 5,
+                "cfgScale": 10,
                 "seed": 42,
             },
         }
@@ -116,7 +174,7 @@ def generate_image(text: str) -> str:
     return image_url
 
 
-# print(generate_image("What is Double Hamburger"))
+# print(generate_image("What is Double whopper"))
 
 from langchain_openai import ChatOpenAI
 
@@ -134,12 +192,9 @@ def ask_expert(question: str) -> str:
     Returns:
     - str: The generated response from the model.
     """
-
-    model_id = "amazon.titan-text-premier-v1:0"
-    model_arn = f"arn:aws:bedrock:{region_name}::foundation-model/{model_id}"
     kbId = "ULFPGHXRLJ"
     query = question
-    return bedrock_agent_runtime.retrieve(
+    answer = bedrock_agent_runtime.retrieve(
         retrievalQuery={"text": query},
         knowledgeBaseId=kbId,
         retrievalConfiguration={
@@ -149,6 +204,9 @@ def ask_expert(question: str) -> str:
             }
         },
     )
+
+    # Return the generated answer text
+    return answer["retrievalResults"]
 
 
 class ResearchCrewAgents:
