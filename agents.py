@@ -148,7 +148,7 @@ def generate_image(text: str) -> str:
                 "quality": "premium",
                 "height": 512,
                 "width": 512,
-                "cfgScale": 10,
+                "cfgScale": 3,
                 # "seed": 42,
             },
         }
