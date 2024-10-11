@@ -139,7 +139,6 @@ def handleRequest(req):
         r = requests.post(reply_url, headers=headers, data=data)
         print(f"Response for no information: {r.text}")  # Log response
     else:
-        # user_message = req["events"][0]["message"]["text"]
         image_url = generate_image(str(response))
 
         print(f"Generated image URL: {image_url}")  # Debug: check generated URL

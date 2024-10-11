@@ -1,89 +1,88 @@
-import json
-import logging
+import os
 import boto3
+from crewai import Agent, Task, Crew, LLM
+from litellm import completion
 
-from botocore.exceptions import ClientError
+# Set AWS region
+os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+
+# Create a custom Bedrock client with the correct region
+bedrock_client = boto3.client(service_name="bedrock-runtime", region_name="us-east-1")
+from crewai_tools import tool
+
+# Configure LiteLLM
+completion(
+    model="bedrock/meta.llama3-70b-instruct-v1:0",
+    messages=[{"role": "user", "content": "Hello, World!"}],
+    aws_bedrock_client=bedrock_client,  # Use the custom client
+)
+region_name = "us-east-1"
+bedrock_agent_runtime = boto3.client("bedrock-agent-runtime", region_name=region_name)
 
 
-class ImageError(Exception):
-    "Custom exception for errors returned by the model"
-
-    def __init__(self, message):
-        self.message = message
-
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-
-
-def generate_text(model_id, body):
+@tool("Business Consultant tools")
+def ask_expert(question: str) -> str:
     """
-    Generate text using your provisioned custom model.
-    Args:
-        model_id (str): The model ID to use.
-        body (str) : The request body to use.
+    This tool uses AWS Bedrock to retrieve and generate answers from a knowledge base.
+
+    Parameters:
+    - question (str): The question you want to ask the expert.
+
     Returns:
-        response (json): The response from the model.
+    - str: The generated response from the model.
     """
-
-    logger.info("Generating text with your provisioned custom model %s", model_id)
-
-    brt = boto3.client(service_name="bedrock-runtime")
-
-    accept = "application/json"
-    content_type = "application/json"
-
-    response = brt.invoke_model(
-        body=body, modelId=model_id, accept=accept, contentType=content_type
-    )
-    response_body = json.loads(response.get("body").read())
-
-    finish_reason = response_body.get("error")
-
-    if finish_reason is not None:
-        raise ImageError(f"Text generation error. Error is {finish_reason}")
-
-    logger.info(
-        "Successfully generated text with provisioned custom model %s", model_id
+    kbId = "ULFPGHXRLJ"
+    query = question
+    answer = bedrock_agent_runtime.retrieve(
+        retrievalQuery={"text": query},
+        knowledgeBaseId=kbId,
+        retrievalConfiguration={
+            "vectorSearchConfiguration": {
+                "numberOfResults": 3,
+                "overrideSearchType": "HYBRID",  # optional
+            }
+        },
     )
 
-    return response_body
+    # Return the generated answer text
+    return answer["retrievalResults"]
 
 
-def main():
-    """
-    Entrypoint for example.
-    """
-    try:
-        logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+# Create LLM instance for CrewAI
+llm = LLM(
+    model="bedrock/meta.llama3-70b-instruct-v1:0",
+    custom_llm_provider="bedrock",
+    aws_bedrock_client=bedrock_client,
+)
 
-        model_id = (
-            "arn:aws:bedrock:us-east-1:597088053922:provisioned-model/8az1ox5ovoue"
-        )
+# Modify agent for answering general questions
+agent = Agent(
+    role="Research Agent",
+    goal="Search through the data to find relevant and accurate answers.",
+    backstory=(
+        "You are an assistant for question-answering tasks."
+        "Use the information present in the retrieved context to answer the question."
+        "Provide a clear and concise answer."
+        "Do not remove technical terms that are important for the answer, as this could make it out of context."
+    ),
+    verbose=True,
+    allow_delegation=False,
+    llm=llm,
+    tools=[ask_expert],  # Correctly pass the tools list
+)
 
-        body = json.dumps({"inputText": "what is J ventures?"})
+# Modify task to reflect answering questions
+task = Task(
+    description="Answer questions based on the data retrieved.",
+    expected_output="Bring the data retrived to answer, a well-researched and concise answer to the question",
+    agent=agent,
+)
 
-        response_body = generate_text(model_id, body)
-        print(f"Input token count: {response_body['inputTextTokenCount']}")
+# Create a crew with the modified agent and task
+crew = Crew(agents=[agent], tasks=[task], verbose=True)
 
-        for result in response_body["results"]:
-            print(f"Token count: {result['tokenCount']}")
-            print(f"Output text: {result['outputText']}")
-            print(f"Completion reason: {result['completionReason']}")
+# Run the crew with a general question as input
+inputs = {"question": "what is aws"}
+result = crew.kickoff(inputs=inputs)
 
-    except ClientError as err:
-        message = err.response["Error"]["Message"]
-        logger.error("A client error occurred: %s", message)
-        print("A client error occured: " + format(message))
-    except ImageError as err:
-        logger.error(err.message)
-        print(err.message)
-
-    else:
-        print(
-            f"Finished generating text with your provisioned custom model {model_id}."
-        )
-
-
-if __name__ == "__main__":
-    main()
+print(result)
