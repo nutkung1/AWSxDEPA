@@ -2,15 +2,11 @@
 
 Create and implement a sophisticated chatbot for ExxonMobil that is capable of answering customer inquiries and providing support. The goal is to increase ExxonMobil's revenue in Thailand by promoting and selling lubricant products, even in areas without gas stations.
 
-## :computer:Demo
+## :computer: Demo
 
-- Youtube: https://youtu.be/HxGgvHc3r9Y?si=MfI0oBARUAeF70hB
+- Canva: 
 
-- Canva: https://www.canva.com/design/DAGJ52rZEYY/L8NCkjP9sCHD1Bv-MHaiYQ/edit?utm_content=DAGJ52rZEYY&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
-
-- Pitch Deck Presentation: https://www.canva.com/design/DAGK1riGZfc/l_aQi1OqX08wY-PCho4suw/edit?utm_content=DAGK1riGZfc&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
-
-## :rocket:Used By
+## :rocket: Used By
 
 This project is used by the following companies:
 
