@@ -1,6 +1,6 @@
 # 🤖 DEPA x AWS
 
-Create and implement a sophisticated chatbot for ExxonMobil that is capable of answering customer inquiries and providing support. The goal is to increase ExxonMobil's revenue in Thailand by promoting and selling lubricant products, even in areas without gas stations.
+Description
 
 ## :computer: Demo
 
