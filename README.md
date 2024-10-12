@@ -20,8 +20,10 @@ To run this project, you will need to add the following environment variables to
 
 `LINE_TOKEN` = Line Message API Token
 
-## :sparkles: Features
+## :sparkles: Features and Models
 
+Model (Amazon Titan Text G1)
+Model (Amazon Titan Image Generator G1 V2)
 Model (LLAMA3-70b)
 
 - Multi-Agent Architecture (8 agents)
@@ -31,7 +33,6 @@ Model (LLAMA3-70b)
 - Car Series Recognition + Prompt to ask the best lubricant for the car at the same time
 - Inputting a location to find nearby service centers.
 - Searching for service centers.
-
 ## :bookmark_tabs: Run Locally
 
 Clone the project
