@@ -32,7 +32,7 @@ Model (LLAMA3-70b)
 - Inputting a location to find nearby service centers.
 - Searching for service centers.
 
-## :bookmark_tabs:Run Locally
+## :bookmark_tabs: Run Locally
 
 Clone the project
 
@@ -63,7 +63,7 @@ Start the server
   ngrok http 10000
 ```
 
-## :globe_with_meridians:Tech Stack
+## :globe_with_meridians: Tech Stack
 
 **Client:** Line Official Account
 
