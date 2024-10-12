@@ -57,7 +57,7 @@ def finetune(question):
     """
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    model_id = "arn:aws:bedrock:us-east-1:597088053922:provisioned-model/nf4cb3xu0c3v"
+    model_id = "arn:aws:bedrock:us-east-1:597088053922:provisioned-model/ir5tadwptsom"
 
     body = json.dumps({"inputText": question})
 
@@ -140,7 +140,7 @@ def generate_image(text: str) -> str:
                 "quality": "premium",
                 "height": 512,
                 "width": 512,
-                "cfgScale": 3,
+                "cfgScale": 8,
                 # "seed": 42,
             },
         }

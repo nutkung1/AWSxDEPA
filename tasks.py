@@ -30,8 +30,7 @@ class ResearchCrewTasks:
             ),
             expected_output=(
                 "A complete and engaging piece of content, maximum 4 sentences."
-                "that is well-structured, easy to read, and aligns with the information provided."
-                "The final content should be formatted and ready for publication."
+                "that is well-structured, easy to read, and aligns with the information provided. The answer you write need to describe How to (each step process) of the method and solution appraoch. Don't imply. Write the answer in a friendly and engaging tone."
                 f"If the {inputs['question']} question not related information retrieved from the research agents just say 'Unfortunately, I could not find any relevant information on this topic'."
                 f"The answer need to use the context {context} and write the best friendly answer related to the question {inputs['question']}"
             ),
