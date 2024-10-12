@@ -12,7 +12,7 @@ This project is used by the following companies:
 
 - ExxonMobil
 
-## :key:Environment Variables
+## :key: Environment Variables
 
 To run this project, you will need to add the following environment variables to your .env file
 
@@ -20,7 +20,7 @@ To run this project, you will need to add the following environment variables to
 
 `GROQ_API_KEY` = GROQ API Key
 
-## :sparkles:Features
+## :sparkles: Features
 
 Model (LLAMA3-70b)
 
