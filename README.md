@@ -22,9 +22,9 @@ To run this project, you will need to add the following environment variables to
 
 ## :sparkles: Features and Models
 
-Model (Amazon Titan Text G1)
-Model (Amazon Titan Image Generator G1 V2)
-Model (LLAMA3-70b)
+# Model (Amazon Titan Text G1)
+# Model (Amazon Titan Image Generator G1 V2)
+# Model (LLAMA3-70b)
 
 - Multi-Agent Architecture (8 agents)
 - Online Web search
