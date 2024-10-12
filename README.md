@@ -10,7 +10,9 @@ Create and implement a sophisticated chatbot for ExxonMobil that is capable of a
 
 This project is used by the following companies:
 
-- ExxonMobil
+- AWS
+- DEPA
+- J Ventures
 
 ## :key: Environment Variables
 
