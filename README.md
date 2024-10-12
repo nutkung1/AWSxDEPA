@@ -16,9 +16,7 @@ This project is used by the following companies:
 
 To run this project, you will need to add the following environment variables to your .env file
 
-`HF_TOKEN` = HuggingFace Access Token
-
-`GROQ_API_KEY` = GROQ API Key
+`LINE_TOKEN` = Line Message API Token
 
 ## :sparkles: Features
 
