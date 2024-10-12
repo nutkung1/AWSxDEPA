@@ -29,7 +29,7 @@ To run this project, you will need to add the following environment variables to
 ## ❇️ Features
 - Multi-Agent Architecture (5 agents)
 - Hybrid Search
-- Image generator
+- Image Generator
 
 ## :bookmark_tabs: Run Locally
 
