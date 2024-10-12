@@ -65,9 +65,9 @@ Start the server
 
 ## :globe_with_meridians:Tech Stack
 
-**Client:** Streamlit
+**Client:** Line Official Account
 
-**Tools:** Langchain, OpenAI-Whisper, LLAMA3-70b, GROQ, CarNET
+**Tools:** CrewAI, AWS Bedrock, AWS S3
 
 ## :envelope_with_arrow:Feedback
 
