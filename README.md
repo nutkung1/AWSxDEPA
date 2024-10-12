@@ -37,13 +37,13 @@ Model (LLAMA3-70b)
 Clone the project
 
 ```bash
-  git clone https://github.com/nutkung1/ExxonMobil-Bootcathon2024.git
+  git clone https://github.com/nutkung1/AWSxDEPA.git
 ```
 
 Go to the project directory
 
 ```bash
-  cd ExxonMobil-Bootcathon2024
+  cd AWSxDEPA
 ```
 
 Install dependencies
@@ -55,7 +55,11 @@ Install dependencies
 Start the server
 
 ```bash
-  streamlit run app.py
+  python run main.py
+```
+
+```bash
+  ngrok http 10000
 ```
 
 ## :globe_with_meridians:Tech Stack
