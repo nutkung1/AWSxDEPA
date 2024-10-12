@@ -27,13 +27,9 @@ To run this project, you will need to add the following environment variables to
 - Model (LLAMA3-70b)
 
 ## ❇️ Features
-- Multi-Agent Architecture (8 agents)
-- Online Web search
-- Speech to Text (Input)
-- Text to Speech (Output)
-- Car Series Recognition + Prompt to ask for the best lubricant for the car at the same time
-- Inputting a location to find nearby service centers.
-- Searching for service centers.
+- Multi-Agent Architecture (5 agents)
+- Hybrid Search
+- Image generator
 
 ## :bookmark_tabs: Run Locally
 
