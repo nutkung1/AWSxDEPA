@@ -52,11 +52,12 @@ Install dependencies
   pip install -r requirements.txt
 ```
 
-Start the server
+Start the python
 
 ```bash
   python run main.py
 ```
+Start the server
 
 ```bash
   ngrok http 10000
