@@ -1,6 +1,6 @@
 # 🤖 DEPA x AWS
 
-Description
+This project is used to optimize J Ventures' income by assisting customers with Business consultant chatbot 
 
 ## :computer: Demo
 
