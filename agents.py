@@ -1,4 +1,4 @@
-from crewai import Agent
+from crewai import Agent, LLM
 import os
 from dotenv import load_dotenv
 from langchain_community.embeddings import BedrockEmbeddings
@@ -57,17 +57,11 @@ def finetune(question):
     """
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    model_id = "arn:aws:bedrock:us-east-1:597088053922:provisioned-model/8az1ox5ovoue"
+    model_id = "arn:aws:bedrock:us-east-1:597088053922:provisioned-model/ir5tadwptsom"
 
     body = json.dumps({"inputText": question})
 
     response_body = generate_text(model_id, body)
-    # print(f"Input token count: {response_body['inputTextTokenCount']}")
-
-    # for result in response_body["results"]:
-    #     print(f"Token count: {result['tokenCount']}")
-    #     print(f"Output text: {result['outputText']}")
-    #     print(f"Completion reason: {result['completionReason']}")
     return response_body["results"][0]["outputText"]
 
 
@@ -117,7 +111,6 @@ def clean_prompt(text: str) -> str:
 def generate_image(text: str) -> str:
     """Generates a business overview image using Amazon Titan and uploads it to S3."""
     llm = ChatBedrock(
-        # model_id="amazon.titan-text-lite-v1",
         model_id="amazon.titan-text-express-v1",
         model_kwargs=dict(temperature=0),  # Set higher temperature for creativity
     )
@@ -134,21 +127,20 @@ def generate_image(text: str) -> str:
     ]
     ai_msg = llm.invoke(messages)
     concludeText = ai_msg.content
-    # concludeText = finetune(text)
     print("Image Generation Prompt:", concludeText)
 
     body = json.dumps(
         {
             "taskType": "TEXT_IMAGE",
             "textToImageParams": {
-                "text": concludeText,
+                "text": concludeText + "In English words",
             },
             "imageGenerationConfig": {
                 "numberOfImages": 1,
                 "quality": "premium",
                 "height": 512,
                 "width": 512,
-                "cfgScale": 3,
+                "cfgScale": 8,
                 # "seed": 42,
             },
         }
@@ -199,7 +191,7 @@ def ask_expert(question: str) -> str:
         knowledgeBaseId=kbId,
         retrievalConfiguration={
             "vectorSearchConfiguration": {
-                "numberOfResults": 3,
+                "numberOfResults": 5,
                 "overrideSearchType": "HYBRID",  # optional
             }
         },
@@ -209,16 +201,23 @@ def ask_expert(question: str) -> str:
     return answer["retrievalResults"]
 
 
+from litellm import completion
+
+
 class ResearchCrewAgents:
 
     def __init__(self):
-        # SELECT YOUR MODEL HERE
-        self.selected_llm = ChatOpenAI(
-            openai_api_base="https://api.groq.com/openai/v1",
-            openai_api_key=os.environ["GROQ_API_KEY"],
-            model_name="llama-3.2-90b-text-preview",
-            temperature=0,
-            max_tokens=300,
+        bedrock_client = boto3.client(
+            service_name="bedrock-runtime", region_name="us-east-1"
+        )
+
+        # Create LLM instance for CrewAI
+        self.selected_llm = LLM(
+            model="bedrock/meta.llama3-70b-instruct-v1:0",
+            custom_llm_provider="bedrock",
+            aws_bedrock_client=bedrock_client,
+            # temperature=0,
+            # max_tokens=280,
         )
 
         """Embedded"""
@@ -243,6 +242,7 @@ class ResearchCrewAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.selected_llm,
+            max_iter=5,
             tools=[ask_expert],  # Correctly pass the tools list
         )
 
