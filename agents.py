@@ -201,9 +201,6 @@ def ask_expert(question: str) -> str:
     return answer["retrievalResults"]
 
 
-from litellm import completion
-
-
 class ResearchCrewAgents:
 
     def __init__(self):
